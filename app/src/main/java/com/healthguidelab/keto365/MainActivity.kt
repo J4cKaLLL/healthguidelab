@@ -2,10 +2,11 @@ package com.healthguidelab.keto365
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -27,7 +29,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
@@ -108,31 +112,48 @@ private fun Keto365App(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
         val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-        if (task.isSuccessful) {
-            val account = task.result
-            val token = account.idToken
-            if (!token.isNullOrBlank()) {
-                val credential = GoogleAuthProvider.getCredential(token, null)
-                firebaseAuth.signInWithCredential(credential).addOnCompleteListener { authResult ->
-                    if (authResult.isSuccessful) {
-                        val email = authResult.result.user?.email.orEmpty()
-                        if (email.isNotBlank()) {
-                            onSaveEmail(email)
-                            userEmail = email
-                            loggedIn = true
-                            errorMessage = null
-                        } else {
-                            errorMessage = "No se pudo recuperar el correo de Google."
-                        }
-                    } else {
-                        errorMessage = authResult.exception?.message ?: "Falló la autenticación."
-                    }
-                }
-            } else {
-                errorMessage = "No se recibió token de Google."
-            }
-        } else {
+        if (!task.isSuccessful) {
             errorMessage = task.exception?.message ?: "No se pudo iniciar sesión con Google."
+            return@rememberLauncherForActivityResult
+        }
+
+        val account = task.result
+        val accountEmail = account?.email.orEmpty()
+        val token = account?.idToken
+
+        fun finishLogin(email: String) {
+            if (email.isNotBlank()) {
+                onSaveEmail(email)
+                userEmail = email
+                loggedIn = true
+            } else {
+                errorMessage = "No se pudo recuperar el correo de Google."
+            }
+        }
+
+        if (token.isNullOrBlank()) {
+            // Fallback: permite continuar con el correo de Google incluso si no hay token.
+            finishLogin(accountEmail)
+            if (loggedIn) {
+                errorMessage = "Ingresaste sin validación Firebase (token ausente)."
+            }
+            return@rememberLauncherForActivityResult
+        }
+
+        val credential = GoogleAuthProvider.getCredential(token, null)
+        firebaseAuth.signInWithCredential(credential).addOnCompleteListener { authResult ->
+            if (authResult.isSuccessful) {
+                finishLogin(authResult.result.user?.email ?: accountEmail)
+                if (loggedIn) errorMessage = null
+            } else {
+                // Si Firebase está mal configurado (p.ej. code 10), continuamos con el correo de Google.
+                finishLogin(accountEmail)
+                if (loggedIn) {
+                    errorMessage = "Ingresaste con Google, pero Firebase no está configurado en este build."
+                } else {
+                    errorMessage = authResult.exception?.message ?: "Falló la autenticación."
+                }
+            }
         }
     }
 
@@ -188,9 +209,16 @@ private fun LoginContent(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Image(
+            painter = painterResource(id = R.drawable.keto365_logo),
+            contentDescription = "Logo Keto365",
+            modifier = Modifier.size(180.dp),
+            contentScale = ContentScale.Fit
+        )
+        Spacer(Modifier.height(8.dp))
         Text(
-            text = "Keto365",
-            style = MaterialTheme.typography.headlineMedium,
+            text = "HealthGuideApp",
+            style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
         Spacer(Modifier.height(12.dp))
