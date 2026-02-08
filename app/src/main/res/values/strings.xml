@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Keto365</string>
+    <string name="default_web_client_id">REEMPLAZA_CON_WEB_CLIENT_ID_DE_FIREBASE</string>
+</resources>
