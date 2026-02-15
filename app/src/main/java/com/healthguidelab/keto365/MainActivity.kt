@@ -21,6 +21,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -88,7 +89,9 @@ private fun Keto365App(
     val context = LocalContext.current
     val firebaseAuth = remember { Firebase.auth }
     var loading by remember { mutableStateOf(true) }
+    var signingIn by remember { mutableStateOf(false) }
     var loggedIn by remember { mutableStateOf(false) }
+    var showWelcome by remember { mutableStateOf(false) }
     var userEmail by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -96,6 +99,7 @@ private fun Keto365App(
         val alreadyLogged = sessionStore.hasLoggedOnce.first()
         val emailInDb = database.userEmailDao().getEmail()?.email
         loggedIn = alreadyLogged && !emailInDb.isNullOrBlank()
+        showWelcome = loggedIn
         userEmail = emailInDb.orEmpty()
         loading = false
     }
@@ -111,9 +115,25 @@ private fun Keto365App(
     val signInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
+        signingIn = false
+
+        if (result.resultCode != android.app.Activity.RESULT_OK) {
+            errorMessage = "Inicio de sesión cancelado."
+            return@rememberLauncherForActivityResult
+        }
+
         val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
         if (!task.isSuccessful) {
-            errorMessage = task.exception?.message ?: "No se pudo iniciar sesión con Google."
+            val lastAccount = GoogleSignIn.getLastSignedInAccount(context)
+            if (!lastAccount?.email.isNullOrBlank()) {
+                onSaveEmail(lastAccount?.email.orEmpty())
+                userEmail = lastAccount?.email.orEmpty()
+                loggedIn = true
+                showWelcome = true
+                errorMessage = "Ingresaste con la sesión de Google guardada en el dispositivo."
+            } else {
+                errorMessage = task.exception?.message ?: "No se pudo iniciar sesión con Google."
+            }
             return@rememberLauncherForActivityResult
         }
 
@@ -126,6 +146,7 @@ private fun Keto365App(
                 onSaveEmail(email)
                 userEmail = email
                 loggedIn = true
+                showWelcome = true
             } else {
                 errorMessage = "No se pudo recuperar el correo de Google."
             }
@@ -159,7 +180,7 @@ private fun Keto365App(
 
     Scaffold(modifier = Modifier.fillMaxSize()) { padding ->
         when {
-            loading -> {
+            loading || signingIn -> {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -168,19 +189,33 @@ private fun Keto365App(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     CircularProgressIndicator()
+                    if (signingIn) {
+                        Spacer(Modifier.height(12.dp))
+                        Text("Validando acceso con Google...")
+                    }
                 }
             }
 
             loggedIn -> {
                 val recipe = remember { recipeFor(LocalDate.now()) }
-                HomeContent(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    email = userEmail,
-                    recipeTitle = recipe.title,
-                    dayOfYear = recipe.dayOfYear
-                )
+                if (showWelcome) {
+                    WelcomeContent(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding),
+                        email = userEmail,
+                        onContinue = { showWelcome = false }
+                    )
+                } else {
+                    HomeContent(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding),
+                        email = userEmail,
+                        recipeTitle = recipe.title,
+                        dayOfYear = recipe.dayOfYear
+                    )
+                }
             }
 
             else -> {
@@ -190,10 +225,39 @@ private fun Keto365App(
                         .padding(padding),
                     errorMessage = errorMessage,
                     onGoogleLogin = {
+                        signingIn = true
+                        errorMessage = null
                         signInLauncher.launch(googleSignInClient.signInIntent)
                     }
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun WelcomeContent(
+    modifier: Modifier = Modifier,
+    email: String,
+    onContinue: () -> Unit
+) {
+    Column(
+        modifier = modifier.padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Bienvenido a Keto365",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(Modifier.height(12.dp))
+        Text(text = "Sesión iniciada correctamente con:")
+        Spacer(Modifier.height(8.dp))
+        Text(text = email, style = MaterialTheme.typography.bodyLarge)
+        Spacer(Modifier.height(24.dp))
+        Button(onClick = onContinue) {
+            Text("Continuar")
         }
     }
 }
@@ -226,6 +290,10 @@ private fun LoginContent(
         Spacer(Modifier.height(24.dp))
         Button(onClick = onGoogleLogin) {
             Text("Entrar con Google")
+        }
+        Spacer(Modifier.height(8.dp))
+        TextButton(onClick = onGoogleLogin) {
+            Text("Reintentar inicio con Google")
         }
         if (!errorMessage.isNullOrBlank()) {
             Spacer(Modifier.height(16.dp))
