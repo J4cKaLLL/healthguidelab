@@ -152,13 +152,18 @@ private fun Keto365App(
     ) { result ->
         signingIn = false
 
-        if (result.resultCode != android.app.Activity.RESULT_OK) {
-            errorMessage = "Inicio de sesión cancelado."
-            return@rememberLauncherForActivityResult
-        }
-
         val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
         if (!task.isSuccessful) {
+            val apiException = task.exception as? ApiException
+            val wasCancelled =
+                result.resultCode != android.app.Activity.RESULT_OK &&
+                    apiException?.statusCode == GoogleSignInStatusCodes.SIGN_IN_CANCELLED
+
+            if (wasCancelled) {
+                errorMessage = "Inicio de sesión cancelado."
+                return@rememberLauncherForActivityResult
+            }
+
             val lastAccount = GoogleSignIn.getLastSignedInAccount(context)
             if (!lastAccount?.email.isNullOrBlank()) {
                 onSaveEmail(lastAccount?.email.orEmpty())
