@@ -225,12 +225,13 @@ private fun Keto365App(
                 userEmail = lastAccount?.email.orEmpty()
                 loggedIn = true
                 flowStep = LoggedInFlowStep.DAY_ANIMATION
-                errorMessage = "You signed in with the Google session saved on this device."
+                errorMessage = "Ingresaste con la sesión de Google guardada en el dispositivo."
             } else {
                 val friendlyError = googleSignInErrorMessage(task.exception)
                 Log.w(TAG, "Google Sign-In failed", task.exception)
                 errorMessage = friendlyError
             }
+
             return@rememberLauncherForActivityResult
         }
 
@@ -303,9 +304,7 @@ private fun Keto365App(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(padding),
-                        email = userEmail,
                         recipeTitle = recipe.title,
-                        dayOfYear = recipe.dayOfYear,
                         onContinue = { flowStep = LoggedInFlowStep.PREMIUM_PREVIEW }
                     )
 
@@ -338,7 +337,7 @@ private fun Keto365App(
                             .onFailure { launchError ->
                                 Log.e(TAG, "Could not open Google Sign-In", launchError)
                                 signingIn = false
-                                errorMessage = "Could not open Google Sign-In on this device."
+                                errorMessage = "Could not open Google Sign-In en este dispositivo."
                             }
                     }
                 )
@@ -403,9 +402,7 @@ private fun DayAnimationContent(
 @Composable
 private fun FreeRecipeContent(
     modifier: Modifier = Modifier,
-    email: String,
     recipeTitle: String,
-    dayOfYear: Int,
     onContinue: () -> Unit
 ) {
     Column(
@@ -419,24 +416,7 @@ private fun FreeRecipeContent(
             modifier = Modifier.size(120.dp),
             contentScale = ContentScale.Fit
         )
-        Spacer(Modifier.height(16.dp))
-        Text(
-            text = "Today's free recipe",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.SemiBold
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = "Signed in as $email",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = "DAY $dayOfYear",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
+        Spacer(Modifier.height(24.dp))
 
         Spacer(Modifier.height(16.dp))
         Card(modifier = Modifier.fillMaxWidth()) {
