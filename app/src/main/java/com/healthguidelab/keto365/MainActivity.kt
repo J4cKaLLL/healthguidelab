@@ -105,12 +105,12 @@ private fun googleSignInErrorMessage(exception: Exception?): String {
     val code = apiException?.statusCode
 
     return when (code) {
-        GoogleSignInStatusCodes.SIGN_IN_CANCELLED -> "Inicio de sesión cancelado."
-        GoogleSignInStatusCodes.SIGN_IN_REQUIRED -> "Elige una cuenta de Google para continuar."
-        GoogleSignInStatusCodes.NETWORK_ERROR -> "Sin conexión. Revisa tu internet e inténtalo de nuevo."
-        GoogleSignInStatusCodes.DEVELOPER_ERROR -> "Configuración inválida de Google Sign-In (SHA-1 o client ID)."
-        GoogleSignInStatusCodes.INTERNAL_ERROR -> "Error interno de Google Sign-In. Intenta otra vez."
-        else -> exception?.message ?: "No se pudo iniciar sesión con Google."
+        GoogleSignInStatusCodes.SIGN_IN_CANCELLED -> "Sign-in was canceled."
+        GoogleSignInStatusCodes.SIGN_IN_REQUIRED -> "Choose a Google account to continue."
+        GoogleSignInStatusCodes.NETWORK_ERROR -> "No connection. Check your internet and try again."
+        GoogleSignInStatusCodes.DEVELOPER_ERROR -> "Invalid Google Sign-In configuration (SHA-1 or client ID)."
+        GoogleSignInStatusCodes.INTERNAL_ERROR -> "Google Sign-In internal error. Try again."
+        else -> exception?.message ?: "Could not sign in with Google."
     }
 }
 
@@ -118,9 +118,9 @@ private fun firebaseAuthErrorMessage(exception: Exception?): String {
     val firebaseCode = (exception as? FirebaseAuthException)?.errorCode
 
     return when (firebaseCode) {
-        "ERROR_INVALID_CREDENTIAL" -> "Credencial inválida. Verifica SHA-1/SHA-256 y google-services.json."
-        "ERROR_NETWORK_REQUEST_FAILED" -> "Error de red al validar con Firebase."
-        else -> exception?.message ?: "Falló la autenticación con Firebase."
+        "ERROR_INVALID_CREDENTIAL" -> "Invalid credential. Verify SHA-1/SHA-256 and google-services.json."
+        "ERROR_NETWORK_REQUEST_FAILED" -> "Network error while validating with Firebase."
+        else -> exception?.message ?: "Firebase authentication failed."
     }
 }
 
@@ -171,7 +171,7 @@ private fun Keto365App(
                     apiException?.statusCode == GoogleSignInStatusCodes.SIGN_IN_CANCELLED
 
             if (wasCancelled) {
-                errorMessage = "Inicio de sesión cancelado."
+                errorMessage = "Sign-in was canceled."
                 return@rememberLauncherForActivityResult
             }
 
@@ -181,15 +181,15 @@ private fun Keto365App(
                 userEmail = lastAccount?.email.orEmpty()
                 loggedIn = true
                 showWelcome = true
-                errorMessage = "Ingresaste con la sesión de Google guardada en el dispositivo."
+                errorMessage = "You signed in with the Google session saved on this device."
             } else {
                 val friendlyError = googleSignInErrorMessage(task.exception)
-                Log.w(TAG, "Google Sign-In falló", task.exception)
+                Log.w(TAG, "Google Sign-In failed", task.exception)
                 errorMessage = friendlyError
             }
 
             val friendlyError = googleSignInErrorMessage(task.exception)
-            Log.w(TAG, "Google Sign-In falló", task.exception)
+            Log.w(TAG, "Google Sign-In failed", task.exception)
             errorMessage = friendlyError
             return@rememberLauncherForActivityResult
         }
@@ -205,12 +205,12 @@ private fun Keto365App(
                 loggedIn = true
                 flowStep = LoggedInFlowStep.DAY_ANIMATION
             } else {
-                errorMessage = "No se pudo recuperar el correo de Google."
+                errorMessage = "Could not retrieve Google email."
             }
         }
 
         if (token.isNullOrBlank()) {
-            errorMessage = "No se recibió token de Google. Revisa default_web_client_id y SHA en Firebase."
+            errorMessage = "No Google token was received. Check default_web_client_id and SHA in Firebase."
             return@rememberLauncherForActivityResult
         }
 
@@ -220,7 +220,7 @@ private fun Keto365App(
                 finishLogin(authResult.result.user?.email ?: accountEmail)
                 if (loggedIn) errorMessage = null
             } else {
-                Log.w(TAG, "Firebase auth falló", authResult.exception)
+                Log.w(TAG, "Firebase auth failed", authResult.exception)
                 errorMessage = firebaseAuthErrorMessage(authResult.exception)
             }
         }
@@ -242,7 +242,7 @@ private fun Keto365App(
                     CircularProgressIndicator()
                     if (signingIn) {
                         Spacer(Modifier.height(12.dp))
-                        Text("Validando acceso con Google...")
+                        Text("Validating access with Google...")
                     }
                 }
             }
@@ -287,9 +287,9 @@ private fun Keto365App(
                         errorMessage = null
                         runCatching { signInLauncher.launch(googleSignInClient.signInIntent) }
                             .onFailure { launchError ->
-                                Log.e(TAG, "No se pudo abrir Google Sign-In", launchError)
+                                Log.e(TAG, "Could not open Google Sign-In", launchError)
                                 signingIn = false
-                                errorMessage = "No se pudo abrir Google Sign-In en este dispositivo."
+                                errorMessage = "Could not open Google Sign-In en este dispositivo."
                             }
                     }
                 )
@@ -328,13 +328,13 @@ private fun DayAnimationContent(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Tu receta gratuita del día",
+            text = "Your free recipe of the day",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold
         )
         Spacer(Modifier.height(24.dp))
         Text(
-            text = "DÍA $dayOfYear",
+            text = "DAY $dayOfYear",
             style = MaterialTheme.typography.displayMedium,
             fontWeight = FontWeight.Bold,
             modifier = Modifier
@@ -344,7 +344,7 @@ private fun DayAnimationContent(
         )
         Spacer(Modifier.height(16.dp))
         Text(
-            text = "Preparando tu receta de hoy...",
+            text = "Preparing your recipe for today...",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -372,13 +372,13 @@ private fun FreeRecipeContent(
         )
         Spacer(Modifier.height(16.dp))
         Text(
-            text = "Inicia sesión para continuar",
+            text = "Sign in to continue",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "Usa tu cuenta de Google para guardar tu progreso y ver tu receta diaria.",
+            text = "Use your Google account to save your progress and view your daily recipe.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -387,14 +387,14 @@ private fun FreeRecipeContent(
             onClick = onGoogleLogin,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Continuar con Google")
+            Text("Continue with Google")
         }
 
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Image(
                     painter = painterResource(id = R.drawable.free_recipe_result),
-                    contentDescription = "Resultado final de la receta",
+                    contentDescription = "Final recipe result",
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(190.dp),
@@ -408,7 +408,7 @@ private fun FreeRecipeContent(
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "Receta gratis desbloqueada hoy. Disfrútala y continúa para ver la sección completa de preparación saludable.",
+                    text = "Free recipe unlocked today. Enjoy it and continue to view the full healthy preparation section.",
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -419,7 +419,7 @@ private fun FreeRecipeContent(
             onClick = onContinue,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Continuar")
+            Text("Continue")
         }
     }
 }
@@ -432,13 +432,13 @@ private fun PremiumPreparationContent(modifier: Modifier = Modifier) {
             .verticalScroll(rememberScrollState())
     ) {
         Text(
-            text = "Preparación de recetas saludables",
+            text = "Healthy recipe preparation",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
         Spacer(Modifier.height(12.dp))
         Text(
-            text = "Aquí tendrás acceso a planes completos, técnicas de cocción y recetas premium paso a paso.",
+            text = "Here you will access full plans, cooking techniques, and step-by-step premium recipes.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -446,13 +446,13 @@ private fun PremiumPreparationContent(modifier: Modifier = Modifier) {
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "Contenido Premium",
+                    text = "Premium Content",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "• Preparaciones guiadas en video\n• Menús semanales personalizados\n• Sustituciones saludables por objetivo",
+                    text = "• Guided video preparations\n• Personalized weekly menus\n• Healthy substitutions by goal",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(Modifier.height(12.dp))
@@ -460,7 +460,7 @@ private fun PremiumPreparationContent(modifier: Modifier = Modifier) {
                     onClick = { },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Desbloquear acceso de pago")
+                    Text("Unlock paid access")
                 }
             }
         }
@@ -486,13 +486,13 @@ private fun LoginContent(
         )
         Spacer(Modifier.height(16.dp))
         Text(
-            text = "Inicia sesión para continuar",
+            text = "Sign in to continue",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "Usa tu cuenta de Google para guardar tu progreso y ver tu receta diaria.",
+            text = "Use your Google account to save your progress and view your daily recipe.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -501,7 +501,7 @@ private fun LoginContent(
             onClick = onGoogleLogin,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Continuar con Google")
+            Text("Continue with Google")
         }
 
         if (!errorMessage.isNullOrBlank()) {
