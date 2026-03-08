@@ -7,6 +7,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,17 +19,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Button
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ElevatedButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,6 +36,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -55,9 +57,16 @@ import com.healthguidelab.keto365.data.AppDatabase
 import com.healthguidelab.keto365.data.SessionStore
 import com.healthguidelab.keto365.data.UserEmailEntity
 import com.healthguidelab.keto365.data.recipeFor
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+
+private enum class LoggedInFlowStep {
+    DAY_ANIMATION,
+    FREE_RECIPE,
+    PREMIUM_PREVIEW
+}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -126,16 +135,18 @@ private fun Keto365App(
     var loading by remember { mutableStateOf(true) }
     var signingIn by remember { mutableStateOf(false) }
     var loggedIn by remember { mutableStateOf(false) }
-    var showWelcome by remember { mutableStateOf(false) }
     var userEmail by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var flowStep by remember { mutableStateOf(LoggedInFlowStep.DAY_ANIMATION) }
 
     LaunchedEffect(Unit) {
         val alreadyLogged = sessionStore.hasLoggedOnce.first()
         val emailInDb = database.userEmailDao().getEmail()?.email
         loggedIn = alreadyLogged && !emailInDb.isNullOrBlank()
-        showWelcome = loggedIn
         userEmail = emailInDb.orEmpty()
+        if (loggedIn) {
+            flowStep = LoggedInFlowStep.DAY_ANIMATION
+        }
         loading = false
     }
 
@@ -176,6 +187,10 @@ private fun Keto365App(
                 Log.w(TAG, "Google Sign-In falló", task.exception)
                 errorMessage = friendlyError
             }
+
+            val friendlyError = googleSignInErrorMessage(task.exception)
+            Log.w(TAG, "Google Sign-In falló", task.exception)
+            errorMessage = friendlyError
             return@rememberLauncherForActivityResult
         }
 
@@ -188,7 +203,7 @@ private fun Keto365App(
                 onSaveEmail(email)
                 userEmail = email
                 loggedIn = true
-                showWelcome = true
+                flowStep = LoggedInFlowStep.DAY_ANIMATION
             } else {
                 errorMessage = "No se pudo recuperar el correo de Google."
             }
@@ -234,22 +249,29 @@ private fun Keto365App(
 
             loggedIn -> {
                 val recipe = remember { recipeFor(LocalDate.now()) }
-                if (showWelcome) {
-                    WelcomeContent(
+                when (flowStep) {
+                    LoggedInFlowStep.DAY_ANIMATION -> DayAnimationContent(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(padding),
-                        email = userEmail,
-                        onContinue = { showWelcome = false }
+                        dayOfYear = recipe.dayOfYear,
+                        onAnimationDone = { flowStep = LoggedInFlowStep.FREE_RECIPE }
                     )
-                } else {
-                    HomeContent(
+
+                    LoggedInFlowStep.FREE_RECIPE -> FreeRecipeContent(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(padding),
                         email = userEmail,
                         recipeTitle = recipe.title,
-                        dayOfYear = recipe.dayOfYear
+                        dayOfYear = recipe.dayOfYear,
+                        onContinue = { flowStep = LoggedInFlowStep.PREMIUM_PREVIEW }
+                    )
+
+                    LoggedInFlowStep.PREMIUM_PREVIEW -> PremiumPreparationContent(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding)
                     )
                 }
             }
@@ -277,28 +299,170 @@ private fun Keto365App(
 }
 
 @Composable
-private fun WelcomeContent(
+private fun DayAnimationContent(
     modifier: Modifier = Modifier,
-    email: String,
-    onContinue: () -> Unit
+    dayOfYear: Int,
+    onAnimationDone: () -> Unit
 ) {
+    var startAnimation by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (startAnimation) 1f else 0.7f,
+        animationSpec = tween(durationMillis = 700),
+        label = "dayScale"
+    )
+    val alpha by animateFloatAsState(
+        targetValue = if (startAnimation) 1f else 0f,
+        animationSpec = tween(durationMillis = 700),
+        label = "dayAlpha"
+    )
+
+    LaunchedEffect(Unit) {
+        startAnimation = true
+        delay(1800)
+        onAnimationDone()
+    }
+
     Column(
         modifier = modifier.padding(24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Bienvenido a Keto365",
-            style = MaterialTheme.typography.headlineMedium,
+            text = "Tu receta gratuita del día",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold
+        )
+        Spacer(Modifier.height(24.dp))
+        Text(
+            text = "DÍA $dayOfYear",
+            style = MaterialTheme.typography.displayMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .scale(scale)
+                .alpha(alpha),
+            color = MaterialTheme.colorScheme.primary
+        )
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = "Preparando tu receta de hoy...",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun FreeRecipeContent(
+    modifier: Modifier = Modifier,
+    email: String,
+    recipeTitle: String,
+    dayOfYear: Int,
+    onContinue: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .padding(24.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.keto365_logo),
+            contentDescription = "Keto365 logo",
+            modifier = Modifier.size(120.dp),
+            contentScale = ContentScale.Fit
+        )
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = "Inicia sesión para continuar",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = "Usa tu cuenta de Google para guardar tu progreso y ver tu receta diaria.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(24.dp))
+        ElevatedButton(
+            onClick = onGoogleLogin,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Continuar con Google")
+        }
+
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Image(
+                    painter = painterResource(id = R.drawable.free_recipe_result),
+                    contentDescription = "Resultado final de la receta",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(190.dp),
+                    contentScale = ContentScale.Crop
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = recipeTitle,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Receta gratis desbloqueada hoy. Disfrútala y continúa para ver la sección completa de preparación saludable.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
+
+        Spacer(Modifier.height(20.dp))
+        ElevatedButton(
+            onClick = onContinue,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Continuar")
+        }
+    }
+}
+
+@Composable
+private fun PremiumPreparationContent(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .padding(24.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
+        Text(
+            text = "Preparación de recetas saludables",
+            style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
         Spacer(Modifier.height(12.dp))
-        Text(text = "Sesión iniciada correctamente con:")
-        Spacer(Modifier.height(8.dp))
-        Text(text = email, style = MaterialTheme.typography.bodyLarge)
-        Spacer(Modifier.height(24.dp))
-        Button(onClick = onContinue) {
-            Text("Continuar")
+        Text(
+            text = "Aquí tendrás acceso a planes completos, técnicas de cocción y recetas premium paso a paso.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(20.dp))
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Contenido Premium",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "• Preparaciones guiadas en video\n• Menús semanales personalizados\n• Sustituciones saludables por objetivo",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(Modifier.height(12.dp))
+                ElevatedButton(
+                    onClick = { },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Desbloquear acceso de pago")
+                }
+            }
         }
     }
 }
@@ -354,46 +518,5 @@ private fun LoginContent(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun HomeContent(
-    modifier: Modifier = Modifier,
-    email: String,
-    recipeTitle: String,
-    dayOfYear: Int
-) {
-    Column(modifier = modifier.padding(24.dp)) {
-        Text(
-            text = "¡Bienvenido de nuevo!",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            text = email,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.height(24.dp))
-
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "Receta keto del día $dayOfYear",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(text = recipeTitle, style = MaterialTheme.typography.bodyLarge)
-            }
-        }
-
-        Spacer(Modifier.height(16.dp))
-        Text(
-            text = "Tip: guarda esta receta en tus favoritos para repetirla cuando quieras.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
     }
 }
