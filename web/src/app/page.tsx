@@ -1,15 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { RecipeList } from '@/components/recipes/RecipeList';
 import { useAuthUser } from '@/hooks/useAuthUser';
-import { useRecipes } from '@/hooks/useRecipes';
+import { getRecipes } from '@/lib/firebase/recipes';
+import { Recipe } from '@/lib/types/recipe';
 
 export default function HomePage() {
-  const [category, setCategory] = useState('all');
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [isLoadingRecipes, setIsLoadingRecipes] = useState(true);
   const { hasPremiumAccess } = useAuthUser();
-  const { recipes, categories, isLoading, error } = useRecipes(category);
+
+  useEffect(() => {
+    const loadRecipes = async () => {
+      setIsLoadingRecipes(true);
+      setRecipes(await getRecipes());
+      setIsLoadingRecipes(false);
+    };
+
+    void loadRecipes();
+  }, []);
 
   return (
     <main className="container">
@@ -18,22 +29,7 @@ export default function HomePage() {
         <p>Discover nourishing meals for every day.</p>
       </header>
 
-      <section className="category-filter" aria-label="Recipe categories">
-        {categories.map((item) => (
-          <button
-            key={item}
-            type="button"
-            className={`chip ${category === item ? 'chip-active' : ''}`}
-            onClick={() => setCategory(item)}
-          >
-            {item}
-          </button>
-        ))}
-      </section>
-
-      {isLoading && <p className="empty-state">Loading recipes...</p>}
-      {error && <p className="error-state">{error}</p>}
-      {!isLoading && !error && <RecipeList recipes={recipes} hasPremiumAccess={hasPremiumAccess} />}
+      {isLoadingRecipes ? <p className="empty-state">Loading recipes...</p> : <RecipeList recipes={recipes} hasPremiumAccess={hasPremiumAccess} />}
     </main>
   );
 }

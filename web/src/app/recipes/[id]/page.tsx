@@ -2,32 +2,32 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 import { PremiumLockScreen } from '@/components/recipes/PremiumLockScreen';
 import { RecipeDetail } from '@/components/recipes/RecipeDetail';
 import { useAuthUser } from '@/hooks/useAuthUser';
-import { useRecipe } from '@/hooks/useRecipe';
+import { getRecipeById } from '@/lib/firebase/recipes';
+import { Recipe } from '@/lib/types/recipe';
 
 export default function RecipePage() {
   const params = useParams<{ id: string }>();
+  const [recipe, setRecipe] = useState<Recipe | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const { hasPremiumAccess, isLoading: authLoading } = useAuthUser();
-  const { recipe, isLoading, error } = useRecipe(params.id);
+
+  useEffect(() => {
+    const loadRecipe = async () => {
+      setIsLoading(true);
+      setRecipe(await getRecipeById(params.id));
+      setIsLoading(false);
+    };
+
+    if (params.id) void loadRecipe();
+  }, [params.id]);
 
   if (isLoading || authLoading) {
-    return (
-      <main className="container">
-        <p className="empty-state">Loading recipe...</p>
-      </main>
-    );
-  }
-
-  if (error) {
-    return (
-      <main className="container">
-        <p className="error-state">{error}</p>
-        <Link href="/" className="back-home-link">Back to recipes</Link>
-      </main>
-    );
+    return <main className="container"><p className="empty-state">Loading recipe...</p></main>;
   }
 
   if (!recipe) {
@@ -40,16 +40,8 @@ export default function RecipePage() {
   }
 
   if (recipe.isPremium && !hasPremiumAccess) {
-    return (
-      <main className="container">
-        <PremiumLockScreen />
-      </main>
-    );
+    return <main className="container"><PremiumLockScreen /></main>;
   }
 
-  return (
-    <main className="container">
-      <RecipeDetail recipe={recipe} />
-    </main>
-  );
+  return <main className="container"><RecipeDetail recipe={recipe} /></main>;
 }

@@ -4,7 +4,6 @@
   --bg: #fcf4f4;
   --black: #000000;
   --white: #ffffff;
-  --soft-border: rgb(15 36 24 / 10%);
 }
 
 * {
@@ -32,29 +31,6 @@ body {
   color: var(--gray);
 }
 
-.category-filter {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin: 18px 0 20px;
-}
-
-.chip {
-  border: 1px solid var(--soft-border);
-  border-radius: 999px;
-  padding: 6px 12px;
-  text-transform: capitalize;
-  background: var(--white);
-  color: var(--green);
-  cursor: pointer;
-}
-
-.chip-active {
-  border-color: var(--green);
-  background: var(--green);
-  color: var(--white);
-}
-
 .recipe-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -67,7 +43,6 @@ body {
   background: var(--white);
   text-decoration: none;
   color: inherit;
-  border: 1px solid var(--soft-border);
   box-shadow: 0 8px 18px rgb(0 0 0 / 8%);
 }
 
@@ -102,12 +77,6 @@ body {
   color: var(--gray);
 }
 
-.recipe-preview {
-  margin: 8px 0 0;
-  font-size: 0.9rem;
-  color: var(--gray);
-}
-
 .premium-badge {
   margin-top: 10px;
   display: inline-block;
@@ -134,7 +103,6 @@ body {
 .lock-screen {
   background: var(--white);
   border-radius: 20px;
-  border: 1px solid var(--soft-border);
   padding: 30px 18px;
   text-align: center;
 }
@@ -150,8 +118,4 @@ body {
 
 .empty-state {
   color: var(--gray);
-}
-
-.error-state {
-  color: #a32626;
 }
