@@ -38,3 +38,15 @@ App Android sencilla que:
 - `data/UserEmailDao.kt` y `data/UserEmailEntity.kt`: tabla para email.
 - `data/SessionStore.kt`: bandera de primer login.
 - `data/KetoRecipes.kt`: receta diaria por día del año.
+
+## Si en el celular no abre "Entrar con Google"
+
+Revisa este checklist (de mayor a menor frecuencia):
+
+1. **INTERNET en el Manifest**: la app necesita red para Google/Firebase.
+2. **`app/google-services.json` presente** y del proyecto Firebase correcto.
+3. **SHA-1/SHA-256** del keystore (debug/release) cargados en Firebase.
+4. **`default_web_client_id`** en `strings.xml` debe coincidir con el de Firebase.
+5. **Google Play Services** actualizado en el teléfono.
+
+La app ahora muestra mensajes más claros cuando falla el login por red o por configuración.
