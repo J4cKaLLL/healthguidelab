@@ -152,13 +152,18 @@ private fun Keto365App(
     ) { result ->
         signingIn = false
 
-        if (result.resultCode != android.app.Activity.RESULT_OK) {
-            errorMessage = "Inicio de sesión cancelado."
-            return@rememberLauncherForActivityResult
-        }
-
         val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
         if (!task.isSuccessful) {
+            val apiException = task.exception as? ApiException
+            val wasCancelled =
+                result.resultCode != android.app.Activity.RESULT_OK &&
+                    apiException?.statusCode == GoogleSignInStatusCodes.SIGN_IN_CANCELLED
+
+            if (wasCancelled) {
+                errorMessage = "Inicio de sesión cancelado."
+                return@rememberLauncherForActivityResult
+            }
+
             val lastAccount = GoogleSignIn.getLastSignedInAccount(context)
             if (!lastAccount?.email.isNullOrBlank()) {
                 onSaveEmail(lastAccount?.email.orEmpty())
@@ -190,11 +195,7 @@ private fun Keto365App(
         }
 
         if (token.isNullOrBlank()) {
-            // Fallback: permite continuar con el correo de Google incluso si no hay token.
-            finishLogin(accountEmail)
-            if (loggedIn) {
-                errorMessage = "Ingresaste sin validación Firebase (token ausente)."
-            }
+            errorMessage = "No se recibió token de Google. Revisa default_web_client_id y SHA en Firebase."
             return@rememberLauncherForActivityResult
         }
 
@@ -204,14 +205,8 @@ private fun Keto365App(
                 finishLogin(authResult.result.user?.email ?: accountEmail)
                 if (loggedIn) errorMessage = null
             } else {
-                // Si Firebase está mal configurado (p.ej. code 10), continuamos con el correo de Google.
-                finishLogin(accountEmail)
-                if (loggedIn) {
-                    errorMessage = "Ingresaste con Google, pero Firebase no está configurado en este build."
-                } else {
-                    Log.w(TAG, "Firebase auth falló", authResult.exception)
-                    errorMessage = firebaseAuthErrorMessage(authResult.exception)
-                }
+                Log.w(TAG, "Firebase auth falló", authResult.exception)
+                errorMessage = firebaseAuthErrorMessage(authResult.exception)
             }
         }
     }
@@ -319,6 +314,31 @@ private fun LoginContent(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Image(
+            painter = painterResource(id = R.drawable.keto365_logo),
+            contentDescription = "Keto365 logo",
+            modifier = Modifier.size(120.dp),
+            contentScale = ContentScale.Fit
+        )
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = "Inicia sesión para continuar",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = "Usa tu cuenta de Google para guardar tu progreso y ver tu receta diaria.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(24.dp))
+        ElevatedButton(
+            onClick = onGoogleLogin,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Continuar con Google")
+        }
 
         if (!errorMessage.isNullOrBlank()) {
             Spacer(Modifier.height(16.dp))
