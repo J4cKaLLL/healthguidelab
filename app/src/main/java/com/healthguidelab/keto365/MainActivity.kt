@@ -28,6 +28,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.Typography
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,10 +40,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.googlefonts.Font
+import androidx.compose.ui.text.googlefonts.GoogleFont
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import androidx.room.Room
@@ -65,7 +72,46 @@ import java.time.LocalDate
 private enum class LoggedInFlowStep {
     DAY_ANIMATION,
     FREE_RECIPE,
-    PREMIUM_PREVIEW
+    PREMIUM_PREVIEW,
+    SUBSCRIPTION_PLANS
+}
+
+private val BrandGreen = Color(0xFF0F2418)
+private val BrandGray = Color(0xFF6E6565)
+private val BrandBackground = Color(0xFFFCF4F4)
+
+private val AppColorScheme = lightColorScheme(
+    primary = BrandGreen,
+    onPrimary = Color.White,
+    background = BrandBackground,
+    onBackground = BrandGreen,
+    surface = Color.White,
+    onSurface = BrandGreen,
+    surfaceVariant = Color(0xFFF3ECEC),
+    onSurfaceVariant = BrandGray
+)
+
+@Composable
+private fun Keto365Theme(content: @Composable () -> Unit) {
+    val provider = GoogleFont.Provider(
+        providerAuthority = "com.google.android.gms.fonts",
+        providerPackage = "com.google.android.gms",
+        certificates = androidx.compose.ui.R.array.com_google_android_gms_fonts_certs
+    )
+    val poppins = FontFamily(
+        Font(googleFont = GoogleFont("Poppins"), fontProvider = provider)
+    )
+
+    val typography = Typography(
+        bodyLarge = TextStyle(fontFamily = poppins),
+        bodyMedium = TextStyle(fontFamily = poppins),
+        titleLarge = TextStyle(fontFamily = poppins, fontWeight = FontWeight.SemiBold),
+        titleMedium = TextStyle(fontFamily = poppins, fontWeight = FontWeight.Medium),
+        headlineSmall = TextStyle(fontFamily = poppins, fontWeight = FontWeight.Bold),
+        displayMedium = TextStyle(fontFamily = poppins, fontWeight = FontWeight.Bold)
+    )
+
+    MaterialTheme(colorScheme = AppColorScheme, typography = typography, content = content)
 }
 
 class MainActivity : ComponentActivity() {
@@ -82,7 +128,7 @@ class MainActivity : ComponentActivity() {
         val sessionStore = SessionStore(applicationContext)
 
         setContent {
-            MaterialTheme {
+            Keto365Theme {
                 Keto365App(
                     sessionStore = sessionStore,
                     database = database,
@@ -144,9 +190,7 @@ private fun Keto365App(
         val emailInDb = database.userEmailDao().getEmail()?.email
         loggedIn = alreadyLogged && !emailInDb.isNullOrBlank()
         userEmail = emailInDb.orEmpty()
-        if (loggedIn) {
-            flowStep = LoggedInFlowStep.DAY_ANIMATION
-        }
+        if (loggedIn) flowStep = LoggedInFlowStep.DAY_ANIMATION
         loading = false
     }
 
@@ -225,7 +269,8 @@ private fun Keto365App(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        contentWindowInsets = WindowInsets(0)
+        contentWindowInsets = WindowInsets(0),
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         when {
             loading || signingIn -> {
@@ -236,7 +281,7 @@ private fun Keto365App(
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     if (signingIn) {
                         Spacer(Modifier.height(12.dp))
                         Text("Validating access with Google...")
@@ -266,7 +311,15 @@ private fun Keto365App(
                     LoggedInFlowStep.PREMIUM_PREVIEW -> PremiumPreparationContent(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(padding)
+                            .padding(padding),
+                        onUnlockPaidAccess = { flowStep = LoggedInFlowStep.SUBSCRIPTION_PLANS }
+                    )
+
+                    LoggedInFlowStep.SUBSCRIPTION_PLANS -> SubscriptionPlansContent(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding),
+                        onBack = { flowStep = LoggedInFlowStep.PREMIUM_PREVIEW }
                     )
                 }
             }
@@ -365,6 +418,7 @@ private fun FreeRecipeContent(
         )
         Spacer(Modifier.height(24.dp))
 
+        Spacer(Modifier.height(16.dp))
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Image(
@@ -400,7 +454,10 @@ private fun FreeRecipeContent(
 }
 
 @Composable
-private fun PremiumPreparationContent(modifier: Modifier = Modifier) {
+private fun PremiumPreparationContent(
+    modifier: Modifier = Modifier,
+    onUnlockPaidAccess: () -> Unit
+) {
     Column(
         modifier = modifier
             .padding(24.dp)
@@ -432,12 +489,66 @@ private fun PremiumPreparationContent(modifier: Modifier = Modifier) {
                 )
                 Spacer(Modifier.height(12.dp))
                 ElevatedButton(
-                    onClick = { },
+                    onClick = onUnlockPaidAccess,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Unlock paid access")
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun SubscriptionPlansContent(
+    modifier: Modifier = Modifier,
+    onBack: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .padding(24.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
+        Text(
+            text = "Subscription Plans",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = "Choose a plan to unlock premium recipes, advanced meal prep, and exclusive wellness content.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(Modifier.height(16.dp))
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Monthly Plan", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(6.dp))
+                Text("$4.99 / month", style = MaterialTheme.typography.titleLarge)
+                Spacer(Modifier.height(6.dp))
+                Text("• Cancel anytime\n• New premium recipes every week")
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Yearly Plan", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(6.dp))
+                Text("$39.99 / year", style = MaterialTheme.typography.titleLarge)
+                Spacer(Modifier.height(6.dp))
+                Text("• Save over 30%\n• Includes all premium recipe collections")
+            }
+        }
+
+        Spacer(Modifier.height(20.dp))
+        ElevatedButton(
+            onClick = onBack,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Back")
         }
     }
 }
