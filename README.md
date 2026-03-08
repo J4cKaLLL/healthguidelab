@@ -23,6 +23,31 @@ App Android sencilla que:
    por el valor real de `default_web_client_id` que te da Firebase.
 4. Sincroniza Gradle y ejecuta la app.
 
+## Configurar Google Login correctamente (paso a paso)
+
+1. En Firebase Console, entra a **Project settings > Your apps > Android app** (`com.healthguidelab.keto365`).
+2. Agrega los certificados SHA del keystore con el que estás compilando:
+   - Para debug normalmente puedes obtenerlos con:
+     ```bash
+     keytool -list -v -alias androiddebugkey -keystore ~/.android/debug.keystore -storepass android -keypass android
+     ```
+   - Copia al menos **SHA-1** (recomendado también SHA-256) en Firebase.
+3. Activa proveedor **Google** en **Authentication > Sign-in method** en Firebase.
+4. Descarga de nuevo `google-services.json` después de agregar SHA y colócalo en `app/google-services.json`.
+5. Del `google-services.json`, usa el valor de `client/oauth_client` con `client_type: 3` como `default_web_client_id`.
+6. Pega ese valor en `app/src/main/res/values/strings.xml` para `default_web_client_id`.
+7. Sincroniza Gradle, reinstala la app y vuelve a probar login.
+
+Si el error persiste, casi siempre es porque el SHA cargado en Firebase no coincide con el keystore de la app instalada.
+
+## Flujo post-login (gratis + premium)
+
+Después de iniciar sesión correctamente:
+
+1. Se muestra una animación con el día del año actual.
+2. Se abre la **receta gratuita del día** con imagen de resultado.
+3. El usuario toca **Continuar** y pasa a la sección de preparación saludable (premium/pago).
+
 ## Cómo funciona el login de una sola vez
 
 - Al iniciar, se revisa una bandera `has_logged_once` en DataStore.
