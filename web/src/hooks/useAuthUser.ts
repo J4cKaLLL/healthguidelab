@@ -18,26 +18,14 @@ export function useAuthUser(): AuthState {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    let isMounted = true;
-
     const unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
-      if (!isMounted) return;
-
       setUser(nextUser);
       setIsLoading(true);
-
-      try {
-        const premium = await userHasPremiumAccess(nextUser);
-        if (isMounted) setHasPremiumAccess(premium);
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
+      setHasPremiumAccess(await userHasPremiumAccess(nextUser));
+      setIsLoading(false);
     });
 
-    return () => {
-      isMounted = false;
-      unsubscribe();
-    };
+    return unsubscribe;
   }, []);
 
   return { user, isLoading, hasPremiumAccess };

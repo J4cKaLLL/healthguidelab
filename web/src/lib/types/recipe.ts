@@ -10,5 +10,3 @@ export type Recipe = {
   category: string;
   createdAt?: Timestamp;
 };
-
-export type RecipeCreateInput = Omit<Recipe, 'id' | 'createdAt'>;

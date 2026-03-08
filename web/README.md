@@ -26,10 +26,6 @@ Upload all recipe images into:
 
 Save only the public download URL in `recipes.imageUrl`.
 
-Helpers included:
-- `uploadRecipeImage(file, fileName)` to upload into `recipes-images/`.
-- `createRecipe(recipe)` to create a Firestore recipe document.
-
 ## Premium access strategy
 
 Premium access checks both methods:
@@ -39,21 +35,13 @@ Premium access checks both methods:
 
 ## Pages and components
 
-- `/` Home screen with recipe cards, category chips, premium badges, ingredients preview, and preparation preview
+- `/` Home screen with recipe cards
 - `/recipes/[id]` Recipe detail with premium lock handling
 - Reusable components:
   - `RecipeCard`
   - `RecipeList`
   - `RecipeDetail`
   - `PremiumLockScreen`
-
-## Architecture notes
-
-This structure is designed to scale for upcoming features:
-- Favorites (add `favorites` collection + user recipe references)
-- Search (query by title/category keywords)
-- Subscription payments (sync subscription status into custom claims or `users` doc)
-- Category expansion (keto, vegan, smoothies)
 
 ## Environment variables
 
