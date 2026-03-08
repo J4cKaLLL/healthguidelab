@@ -11,6 +11,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,8 +20,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ElevatedButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -211,7 +216,10 @@ private fun Keto365App(
         }
     }
 
-    Scaffold(modifier = Modifier.fillMaxSize()) { padding ->
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        contentWindowInsets = WindowInsets(0)
+    ) { padding ->
         when {
             loading || signingIn -> {
                 Column(
@@ -307,35 +315,24 @@ private fun LoginContent(
     onGoogleLogin: () -> Unit
 ) {
     Column(
-        modifier = modifier.padding(24.dp),
+        modifier = modifier.padding(horizontal = 24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.keto365_logo),
-            contentDescription = "Logo Keto365",
-            modifier = Modifier.size(180.dp),
-            contentScale = ContentScale.Fit
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = "HealthGuideApp",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(Modifier.height(12.dp))
-        Text(text = "Inicia una vez con Google para guardar tu correo.")
-        Spacer(Modifier.height(24.dp))
-        Button(onClick = onGoogleLogin) {
-            Text("Entrar con Google")
-        }
-        Spacer(Modifier.height(8.dp))
-        TextButton(onClick = onGoogleLogin) {
-            Text("Reintentar inicio con Google")
-        }
+
         if (!errorMessage.isNullOrBlank()) {
             Spacer(Modifier.height(16.dp))
-            Text(text = errorMessage, color = MaterialTheme.colorScheme.error)
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.errorContainer,
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Text(
+                    text = errorMessage,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.padding(12.dp)
+                )
+            }
         }
     }
 }
@@ -349,12 +346,17 @@ private fun HomeContent(
 ) {
     Column(modifier = modifier.padding(24.dp)) {
         Text(
-            text = "¡Hola!",
+            text = "¡Bienvenido de nuevo!",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
-        Text(text = email)
+        Text(
+            text = email,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
         Spacer(Modifier.height(24.dp))
+
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
@@ -366,5 +368,12 @@ private fun HomeContent(
                 Text(text = recipeTitle, style = MaterialTheme.typography.bodyLarge)
             }
         }
+
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = "Tip: guarda esta receta en tus favoritos para repetirla cuando quieras.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
     }
 }
