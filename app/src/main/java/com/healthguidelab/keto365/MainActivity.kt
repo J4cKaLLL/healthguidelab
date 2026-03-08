@@ -1,6 +1,7 @@
 package com.healthguidelab.keto365
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -39,6 +40,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.room.Room
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
+import com.google.android.gms.common.api.ApiException
+import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
@@ -77,6 +81,32 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+}
+
+private const val TAG = "Keto365Login"
+
+private fun googleSignInErrorMessage(exception: Exception?): String {
+    val apiException = exception as? ApiException
+    val code = apiException?.statusCode
+
+    return when (code) {
+        GoogleSignInStatusCodes.SIGN_IN_CANCELLED -> "Inicio de sesión cancelado."
+        GoogleSignInStatusCodes.SIGN_IN_REQUIRED -> "Elige una cuenta de Google para continuar."
+        GoogleSignInStatusCodes.NETWORK_ERROR -> "Sin conexión. Revisa tu internet e inténtalo de nuevo."
+        GoogleSignInStatusCodes.DEVELOPER_ERROR -> "Configuración inválida de Google Sign-In (SHA-1 o client ID)."
+        GoogleSignInStatusCodes.INTERNAL_ERROR -> "Error interno de Google Sign-In. Intenta otra vez."
+        else -> exception?.message ?: "No se pudo iniciar sesión con Google."
+    }
+}
+
+private fun firebaseAuthErrorMessage(exception: Exception?): String {
+    val firebaseCode = (exception as? FirebaseAuthException)?.errorCode
+
+    return when (firebaseCode) {
+        "ERROR_INVALID_CREDENTIAL" -> "Credencial inválida. Verifica SHA-1/SHA-256 y google-services.json."
+        "ERROR_NETWORK_REQUEST_FAILED" -> "Error de red al validar con Firebase."
+        else -> exception?.message ?: "Falló la autenticación con Firebase."
     }
 }
 
@@ -132,7 +162,9 @@ private fun Keto365App(
                 showWelcome = true
                 errorMessage = "Ingresaste con la sesión de Google guardada en el dispositivo."
             } else {
-                errorMessage = task.exception?.message ?: "No se pudo iniciar sesión con Google."
+                val friendlyError = googleSignInErrorMessage(task.exception)
+                Log.w(TAG, "Google Sign-In falló", task.exception)
+                errorMessage = friendlyError
             }
             return@rememberLauncherForActivityResult
         }
@@ -172,7 +204,8 @@ private fun Keto365App(
                 if (loggedIn) {
                     errorMessage = "Ingresaste con Google, pero Firebase no está configurado en este build."
                 } else {
-                    errorMessage = authResult.exception?.message ?: "Falló la autenticación."
+                    Log.w(TAG, "Firebase auth falló", authResult.exception)
+                    errorMessage = firebaseAuthErrorMessage(authResult.exception)
                 }
             }
         }
@@ -227,7 +260,12 @@ private fun Keto365App(
                     onGoogleLogin = {
                         signingIn = true
                         errorMessage = null
-                        signInLauncher.launch(googleSignInClient.signInIntent)
+                        runCatching { signInLauncher.launch(googleSignInClient.signInIntent) }
+                            .onFailure { launchError ->
+                                Log.e(TAG, "No se pudo abrir Google Sign-In", launchError)
+                                signingIn = false
+                                errorMessage = "No se pudo abrir Google Sign-In en este dispositivo."
+                            }
                     }
                 )
             }
