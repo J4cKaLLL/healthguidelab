@@ -180,7 +180,7 @@ private fun Keto365App(
                 onSaveEmail(lastAccount?.email.orEmpty())
                 userEmail = lastAccount?.email.orEmpty()
                 loggedIn = true
-                showWelcome = true
+                flowStep = LoggedInFlowStep.DAY_ANIMATION
                 errorMessage = "Ingresaste con la sesión de Google guardada en el dispositivo."
             } else {
                 val friendlyError = googleSignInErrorMessage(task.exception)
@@ -188,9 +188,6 @@ private fun Keto365App(
                 errorMessage = friendlyError
             }
 
-            val friendlyError = googleSignInErrorMessage(task.exception)
-            Log.w(TAG, "Google Sign-In falló", task.exception)
-            errorMessage = friendlyError
             return@rememberLauncherForActivityResult
         }
 
@@ -262,9 +259,7 @@ private fun Keto365App(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(padding),
-                        email = userEmail,
                         recipeTitle = recipe.title,
-                        dayOfYear = recipe.dayOfYear,
                         onContinue = { flowStep = LoggedInFlowStep.PREMIUM_PREVIEW }
                     )
 
@@ -354,9 +349,7 @@ private fun DayAnimationContent(
 @Composable
 private fun FreeRecipeContent(
     modifier: Modifier = Modifier,
-    email: String,
     recipeTitle: String,
-    dayOfYear: Int,
     onContinue: () -> Unit
 ) {
     Column(
@@ -370,25 +363,7 @@ private fun FreeRecipeContent(
             modifier = Modifier.size(120.dp),
             contentScale = ContentScale.Fit
         )
-        Spacer(Modifier.height(16.dp))
-        Text(
-            text = "Inicia sesión para continuar",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.SemiBold
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = "Usa tu cuenta de Google para guardar tu progreso y ver tu receta diaria.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
         Spacer(Modifier.height(24.dp))
-        ElevatedButton(
-            onClick = onGoogleLogin,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Continuar con Google")
-        }
 
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
