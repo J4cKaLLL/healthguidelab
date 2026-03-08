@@ -3,18 +3,18 @@ package com.healthguidelab.keto365.data
 import java.time.LocalDate
 
 private val recipePool = listOf(
-    "Huevos revueltos con aguacate y tocino",
-    "Salmón al horno con mantequilla de ajo y espárragos",
-    "Pollo cremoso con champiñones y espinaca",
-    "Ensalada keto de atún con mayonesa y pepino",
-    "Tacos keto con hojas de lechuga y carne molida",
-    "Bowl de coliflor salteada con camarones",
-    "Albóndigas en salsa de tomate sin azúcar con queso",
-    "Pimientos rellenos de queso crema y pollo",
-    "Lasaña keto con láminas de calabacín",
-    "Omelette de queso cheddar y jamón serrano",
-    "Chuletas de cerdo con puré de coliflor",
-    "Ensalada César keto con pollo y parmesano"
+    "Scrambled eggs with avocado and bacon",
+    "Baked salmon with garlic butter and asparagus",
+    "Creamy chicken with mushrooms and spinach",
+    "Keto tuna salad with mayo and cucumber",
+    "Keto tacos with lettuce wraps and ground beef",
+    "Sauteed cauliflower bowl with shrimp",
+    "Meatballs in sugar-free tomato sauce with cheese",
+    "Bell peppers stuffed with cream cheese and chicken",
+    "Keto lasagna with zucchini slices",
+    "Cheddar omelette with serrano ham",
+    "Pork chops with cauliflower mash",
+    "Keto Caesar salad with chicken and parmesan"
 )
 
 data class DailyRecipe(
