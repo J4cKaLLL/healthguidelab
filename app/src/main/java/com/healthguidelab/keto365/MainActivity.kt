@@ -175,6 +175,19 @@ private fun Keto365App(
                 return@rememberLauncherForActivityResult
             }
 
+            val lastAccount = GoogleSignIn.getLastSignedInAccount(context)
+            if (!lastAccount?.email.isNullOrBlank()) {
+                onSaveEmail(lastAccount?.email.orEmpty())
+                userEmail = lastAccount?.email.orEmpty()
+                loggedIn = true
+                showWelcome = true
+                errorMessage = "Ingresaste con la sesión de Google guardada en el dispositivo."
+            } else {
+                val friendlyError = googleSignInErrorMessage(task.exception)
+                Log.w(TAG, "Google Sign-In falló", task.exception)
+                errorMessage = friendlyError
+            }
+
             val friendlyError = googleSignInErrorMessage(task.exception)
             Log.w(TAG, "Google Sign-In falló", task.exception)
             errorMessage = friendlyError
@@ -351,18 +364,31 @@ private fun FreeRecipeContent(
             .padding(24.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        Text(
-            text = "¡Bienvenido, $email!",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.height(12.dp))
-        Text(
-            text = "Receta gratuita del día $dayOfYear",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
+        Image(
+            painter = painterResource(id = R.drawable.keto365_logo),
+            contentDescription = "Keto365 logo",
+            modifier = Modifier.size(120.dp),
+            contentScale = ContentScale.Fit
         )
         Spacer(Modifier.height(16.dp))
+        Text(
+            text = "Inicia sesión para continuar",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = "Usa tu cuenta de Google para guardar tu progreso y ver tu receta diaria.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(24.dp))
+        ElevatedButton(
+            onClick = onGoogleLogin,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Continuar con Google")
+        }
 
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {

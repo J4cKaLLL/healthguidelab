@@ -40,14 +40,6 @@ App Android sencilla que:
 
 Si el error persiste, casi siempre es porque el SHA cargado en Firebase no coincide con el keystore de la app instalada.
 
-## Flujo post-login (gratis + premium)
-
-Después de iniciar sesión correctamente:
-
-1. Se muestra una animación con el día del año actual.
-2. Se abre la **receta gratuita del día** con imagen de resultado.
-3. El usuario toca **Continuar** y pasa a la sección de preparación saludable (premium/pago).
-
 ## Cómo funciona el login de una sola vez
 
 - Al iniciar, se revisa una bandera `has_logged_once` en DataStore.
