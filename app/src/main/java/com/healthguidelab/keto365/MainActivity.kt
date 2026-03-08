@@ -319,6 +319,31 @@ private fun LoginContent(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Image(
+            painter = painterResource(id = R.drawable.keto365_logo),
+            contentDescription = "Keto365 logo",
+            modifier = Modifier.size(120.dp),
+            contentScale = ContentScale.Fit
+        )
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = "Inicia sesión para continuar",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = "Usa tu cuenta de Google para guardar tu progreso y ver tu receta diaria.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(24.dp))
+        ElevatedButton(
+            onClick = onGoogleLogin,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Continuar con Google")
+        }
 
         if (!errorMessage.isNullOrBlank()) {
             Spacer(Modifier.height(16.dp))
